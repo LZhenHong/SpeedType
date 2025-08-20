@@ -23,5 +23,10 @@ struct Challenge: Identifiable, Hashable {
       title: "Keyboard Layout (QWERTY)",
       text: "QWERTYUIOPASDFGHJKLZXCVBNM"
     ),
+    Challenge(
+      id: "test-qwer",
+      title: "TEST (QWER)",
+      text: "QWER"
+    ),
   ]
 }

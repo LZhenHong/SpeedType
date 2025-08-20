@@ -13,16 +13,22 @@ struct StatisticItem: View {
   let label: String
 
   var body: some View {
-    VStack(spacing: 4) {
+    VStack(spacing: 6) {
       Image(systemName: icon)
-        .foregroundColor(.white)
+        .font(.system(size: 18, weight: .medium))
+        .foregroundStyle(.secondary)
+        .symbolRenderingMode(.hierarchical)
+
       Text(value)
-        .font(.title2)
-        .fontWeight(.bold)
-        .foregroundColor(.white)
+        .font(.system(.title2, design: .monospaced, weight: .semibold))
+        .foregroundStyle(.primary)
+        .frame(minWidth: 80, alignment: .center)
+
       Text(label)
         .font(.caption)
-        .foregroundColor(.gray)
+        .foregroundStyle(.tertiary)
+        .textCase(.uppercase)
+        .tracking(0.5)
     }
   }
 }

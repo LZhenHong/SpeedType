@@ -9,56 +9,29 @@ import Foundation
 import SwiftUI
 
 struct ContentView: View {
-  // MARK: - State Properties
-  @State private var selectedChallenge = Challenge.predefinedChallenges[0]
-  @State private var userInput = ""
-  @State private var isTyping = false
-  @State private var isFinished = false
-  @State private var startTime: Date?
-  @State private var elapsedTime: TimeInterval = 0
-  @State private var timerPublisher = Timer.publish(every: 0.01, on: .main, in: .common)
-    .autoconnect()
-  @State private var currentIndex = 0
-  @State private var errorCount = 0
-  @State private var correctChars = 0
+  // MARK: - Properties
 
-  // MARK: - Computed Properties
-  private var wpm: Double {
-    guard elapsedTime > 0 else { return 0 }
-    let minutes = elapsedTime / 60.0
-    let words = Double(correctChars) / 5.0  // 标准：5个字符 = 1个单词
-    return words / minutes
-  }
-
-  private var accuracy: Int {
-    let totalTyped = correctChars + errorCount
-    guard totalTyped > 0 else { return 100 }
-    return Int((Double(correctChars) / Double(totalTyped)) * 100)
-  }
+  @State private var testState = TypingTestState()
+  @FocusState private var isInputFocused: Bool
+  @State private var showResultView = false
 
   // MARK: - Body
+
   var body: some View {
     ZStack {
-      // 背景
-      Color.black
+      // macOS 原生背景
+      Color(NSColor.windowBackgroundColor)
         .ignoresSafeArea()
 
-      VStack(spacing: 30) {
-        // 标题
+      VStack(spacing: 32) {
+        // 标题 - 使用 macOS 大标题样式
         Text("SpeedType")
-          .font(.title)
-          .fontWeight(.bold)
-          .foregroundColor(.white)
+          .font(.system(size: 34, weight: .bold, design: .default))
+          .foregroundStyle(.primary)
 
-        // 挑战选择器（仅在未开始时显示）
-        if !isTyping {
-          Picker("选择挑战", selection: $selectedChallenge) {
-            ForEach(Challenge.predefinedChallenges, id: \.id) { challenge in
-              Text(challenge.title).tag(challenge)
-            }
-          }
-          .pickerStyle(MenuPickerStyle())
-          .foregroundColor(.white)
+        // 配置面板（仅在未开始时显示）
+        if !testState.isTyping {
+          configurationPanel
         }
 
         Spacer()
@@ -67,16 +40,22 @@ struct ContentView: View {
         VStack(spacing: 20) {
           // 文本显示
           textDisplayView
-            .padding(.horizontal, 40)
 
           // 隐藏的文本输入框
-          TextField("", text: $userInput)
+          TextField("", text: $testState.userInput)
             .opacity(0)
             .frame(height: 0)
-            .onChange(of: userInput) { newValue in
-              handleTextInput(text: newValue)
+            .focused($isInputFocused)
+            .onChange(of: testState.userInput) { _, newValue in
+              TypingEngine.handleInput(newValue, state: testState)
             }
-            .disabled(isFinished)
+            .onChange(of: testState.isFinished) { _, isFinished in
+              if isFinished {
+                showResultView = true
+                isInputFocused = false
+              }
+            }
+            .disabled(testState.isFinished)
         }
 
         Spacer()
@@ -85,187 +64,188 @@ struct ContentView: View {
         statisticsView
 
         // 控制按钮
-        if isFinished {
-          HStack(spacing: 20) {
+        if testState.isFinished {
+          HStack(spacing: 16) {
             Button("重新开始") {
-              resetTest()
+              testState.resetTest()
+              isInputFocused = true
             }
-            .buttonStyle(.borderedProminent)
+            .primaryButtonStyle()
+            .keyboardShortcut(.defaultAction)
 
-            Button("分享结果") {
-              shareResult()
+            Button("查看结果") {
+              showResultView = true
             }
-            .buttonStyle(.bordered)
+            .secondaryButtonStyle()
           }
-        } else if !isTyping {
+        } else if testState.isTyping {
+          Button("结束测试") {
+            testState.finishTest()
+            showResultView = true
+          }
+          .dangerButtonStyle()
+          .keyboardShortcut(.escape)
+        } else {
           Button("开始测试") {
-            startTyping()
+            testState.startTest()
+            isInputFocused = true
           }
-          .buttonStyle(.borderedProminent)
+          .primaryButtonStyle()
+          .keyboardShortcut(.defaultAction)
         }
       }
-      .padding()
+      .padding(.horizontal, 48)
+      .padding(.vertical, 32)
     }
-    .frame(minWidth: 800, minHeight: 600)
-    .onChange(of: selectedChallenge) { _ in
-      resetTest()
-    }
-    .onReceive(timerPublisher) { _ in
-      if let startTime = startTime, isTyping {
-        elapsedTime = Date().timeIntervalSince(startTime)
+    .frame(minWidth: 900, minHeight: 650)
+    .onChange(of: testState.selectedChallenge) { _, newValue in
+      // 只在非完成状态时才重置测试，避免破坏结果显示
+      if !testState.isFinished {
+        testState.changeChallenge(newValue)
       }
+    }
+    .onAppear {
+      isInputFocused = true
+    }
+
+    .sheet(isPresented: $showResultView) {
+      ResultView(
+        testState: testState,
+        onRestart: {
+          showResultView = false
+          testState.resetTest()
+          isInputFocused = true
+        },
+        onShare: {
+          shareResult()
+        }
+      )
     }
   }
 
-  // MARK: - Text Display
-  private var textDisplayView: some View {
-    let text = selectedChallenge.text
-    let characters = Array(text)
+  // MARK: - Private Views
 
-    return Text(attributedText(for: characters))
-      .font(.system(size: 24, design: .monospaced))
-      .lineSpacing(8)
+  private var textDisplayView: some View {
+    Text(TypingEngine.generateAttributedText(for: testState))
+      .font(.system(size: 20, weight: .medium, design: .monospaced))
+      .lineSpacing(10)
       .multilineTextAlignment(.leading)
       .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, 32)
+      .padding(.vertical, 24)
+      .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 16))
+      .overlay(
+        RoundedRectangle(cornerRadius: 16)
+          .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+      )
+      .offset(x: testState.shouldShake ? 15 : 0)
+      .animation(
+        testState.shouldShake
+          ? Animation.easeInOut(duration: 0.06).repeatCount(8, autoreverses: true)
+          : .default,
+        value: testState.shouldShake
+      )
   }
 
-  private func attributedText(for characters: [Character]) -> AttributedString {
-    var attributedString = AttributedString()
+  private var configurationPanel: some View {
+    VStack(spacing: 20) {
+      // 挑战选择区域
+      HStack {
+        Text("选择挑战:")
+          .font(.system(size: 16, weight: .semibold))
+          .foregroundStyle(.primary)
 
-    for (index, character) in characters.enumerated() {
-      var charString = AttributedString(String(character))
-
-      if index < currentIndex {
-        // 已输入的字符
-        if index < userInput.count {
-          let userChar = Array(userInput)[index]
-          if userChar == character {
-            // 正确字符
-            charString.foregroundColor = .green
-          } else {
-            // 错误字符
-            charString.foregroundColor = .red
-            charString.backgroundColor = .red.opacity(0.3)
+        Picker("", selection: $testState.selectedChallenge) {
+          ForEach(Challenge.predefinedChallenges, id: \.id) { challenge in
+            Text(challenge.title).tag(challenge)
           }
         }
-      } else if index == currentIndex {
-        // 当前字符（光标位置）
-        charString.backgroundColor = .white.opacity(0.3)
-        charString.foregroundColor = .white
-      } else {
-        // 未输入的字符
-        charString.foregroundColor = .gray
+        .pickerStyle(.menu)
+        .controlSize(.regular)
+        .fixedSize()
+        .disabled(testState.isFinished)
+
+        Spacer()
       }
 
-      attributedString.append(charString)
-    }
+      // 设置选项区域
+      HStack(spacing: 32) {
+        HStack(spacing: 12) {
+          Image(systemName: "textformat.abc")
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(.secondary)
+            .frame(width: 16)
 
-    return attributedString
+          Toggle("大小写敏感", isOn: $testState.isCaseSensitive)
+            .toggleStyle(.switch)
+            .controlSize(.regular)
+        }
+
+        HStack(spacing: 12) {
+          Image(systemName: "exclamationmark.triangle")
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(.secondary)
+            .frame(width: 16)
+
+          Toggle("严格模式", isOn: $testState.isStrictMode)
+            .toggleStyle(.switch)
+            .controlSize(.regular)
+        }
+
+        Spacer()
+      }
+    }
+    .padding(.horizontal, 24)
+    .padding(.vertical, 20)
+    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    .overlay(
+      RoundedRectangle(cornerRadius: 12)
+        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+    )
   }
 
   // MARK: - Statistics View
+
   private var statisticsView: some View {
-    HStack(spacing: 40) {
-      StatisticItem(icon: "speedometer", value: String(format: "%.1f", wpm), label: "WPM")
-      StatisticItem(icon: "checkmark.circle", value: "\(accuracy)%", label: "准确率")
-      StatisticItem(icon: "textformat.123", value: "\(currentIndex)", label: "字符")
-      StatisticItem(icon: "clock", value: String(format: "%.2fs", elapsedTime), label: "时间")
+    HStack(spacing: 48) {
+      StatisticItem(icon: "speedometer", value: String(format: "%.1f", testState.wpm), label: "WPM")
+      StatisticItem(icon: "checkmark.circle", value: "\(testState.accuracy)%", label: "准确率")
+      StatisticItem(icon: "textformat.123", value: "\(testState.currentIndex)", label: "字符")
+      StatisticItem(
+        icon: "clock", value: String(format: "%05.2fs", testState.elapsedTime), label: "时间"
+      )
     }
-    .padding()
-    .background(Color.gray.opacity(0.1))
-    .cornerRadius(12)
+    .padding(.horizontal, 32)
+    .padding(.vertical, 20)
+    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    .overlay(
+      RoundedRectangle(cornerRadius: 12)
+        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+    )
   }
 }
 
 extension ContentView {
-  // MARK: - Input Handling
-
-  private func handleTextInput(text: String) {
-    if !isTyping {
-      startTyping()
-    }
-
-    let targetChars = Array(selectedChallenge.text)
-    let inputChars = Array(text)
-
-    // 只处理新输入的字符
-    if text.count > currentIndex {
-      let newCharIndex = currentIndex
-      if newCharIndex < targetChars.count && newCharIndex < inputChars.count {
-        if inputChars[newCharIndex] == targetChars[newCharIndex] {
-          correctChars += 1
-        } else {
-          errorCount += 1
-        }
-      }
-    }
-
-    // 更新当前输入位置
-    currentIndex = min(text.count, selectedChallenge.text.count)
-
-    // 检查是否完成 - 必须正确输入完所有字符
-    if correctChars >= selectedChallenge.text.count {
-      finishTyping()
-    }
-  }
-
-  private func startTyping() {
-    isTyping = true
-    startTime = Date()
-    elapsedTime = 0
-  }
-
-  private func finishTyping() {
-    isTyping = false
-    isFinished = true
-  }
-
-  private func resetTest() {
-    userInput = ""
-    isTyping = false
-    isFinished = false
-    startTime = nil
-    elapsedTime = 0
-    currentIndex = 0
-    errorCount = 0
-    correctChars = 0
-  }
 
   private func shareResult() {
-    let challengeURL = "speedtype://challenge/\(selectedChallenge.id)"
-    let shareCard = ShareCardView(
-      challengeTitle: selectedChallenge.title,
-      wpm: Int(wpm.rounded()),
-      accuracy: accuracy,
-      timeUsed: elapsedTime,
-      challengeURL: challengeURL
-    )
+    let wpm = Int(testState.wpm.rounded())
+    let accuracy = testState.accuracy
+    let timeText = String(format: "%.1f", testState.elapsedTime)
 
-    if let image = shareCard.asNSImage(size: CGSize(width: 400, height: 300)) {
-      let pasteboard = NSPasteboard.general
-      pasteboard.clearContents()
-      pasteboard.writeObjects([image])
+    let shareText = """
+      🎯 SpeedType 测试结果
 
-      // 显示成功提示
-      DispatchQueue.main.async {
-        let alert = NSAlert()
-        alert.messageText = "分享成功"
-        alert.informativeText = "打字测试结果图片已复制到剪贴板，你可以粘贴到任何地方分享！"
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "确定")
-        alert.runModal()
-      }
-    } else {
-      // 显示错误提示
-      DispatchQueue.main.async {
-        let alert = NSAlert()
-        alert.messageText = "分享失败"
-        alert.informativeText = "无法生成分享图片，请重试。"
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "确定")
-        alert.runModal()
-      }
-    }
+      ⚡ 速度: \(wpm) WPM
+      🎯 准确率: \(String(format: "%.1f", accuracy))%
+      ⏱️ 用时: \(timeText)秒
+      📝 字符数: \(testState.correctChars)
+
+      #SpeedType #打字练习
+      """
+
+    let pasteboard = NSPasteboard.general
+    pasteboard.clearContents()
+    pasteboard.setString(shareText, forType: .string)
   }
 }
 

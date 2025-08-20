@@ -36,7 +36,7 @@ struct ShareCardView: View {
             .font(.caption)
             .foregroundColor(.gray)
         }
-        
+
         VStack {
           Text("\(accuracy)%")
             .font(.title)
@@ -46,7 +46,7 @@ struct ShareCardView: View {
             .font(.caption)
             .foregroundColor(.gray)
         }
-        
+
         VStack {
           Text(String(format: "%.1fs", timeUsed))
             .font(.title)
@@ -82,23 +82,23 @@ extension View {
   func asNSImage(size: CGSize) -> NSImage? {
     let controller = NSHostingController(rootView: self)
     controller.view.frame = CGRect(origin: .zero, size: size)
-    
+
     // 确保视图有正确的尺寸
     controller.view.wantsLayer = true
     controller.view.layer?.backgroundColor = NSColor.white.cgColor
-    
+
     // 强制布局
     controller.view.layoutSubtreeIfNeeded()
-    
+
     guard let bitmapRep = controller.view.bitmapImageRepForCachingDisplay(in: controller.view.bounds) else {
       return nil
     }
-    
+
     controller.view.cacheDisplay(in: controller.view.bounds, to: bitmapRep)
-    
+
     let image = NSImage(size: size)
     image.addRepresentation(bitmapRep)
-    
+
     return image
   }
 }
