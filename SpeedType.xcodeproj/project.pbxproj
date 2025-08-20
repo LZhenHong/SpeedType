@@ -10,9 +10,22 @@
 		F2B0044C2E447F4A009B2E17 /* SpeedType.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpeedType.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F23E139D2E55DA3B00AF3640 /* Exceptions for "SpeedType" folder in "SpeedType" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F2B0044B2E447F4A009B2E17 /* SpeedType */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F2B0044E2E447F4A009B2E17 /* SpeedType */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F23E139D2E55DA3B00AF3640 /* Exceptions for "SpeedType" folder in "SpeedType" target */,
+			);
 			path = SpeedType;
 			sourceTree = "<group>";
 		};

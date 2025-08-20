@@ -18,24 +18,24 @@ struct ResultView: View {
       Color(NSColor.windowBackgroundColor)
         .ignoresSafeArea()
 
-      VStack(spacing: 24) {
-        Spacer(minLength: 20)
+      VStack(spacing: 16) {
+        Spacer(minLength: 12)
 
         // 标题区域 - macOS原生样式
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
           Image(systemName: "checkmark.circle.fill")
-            .font(.system(size: 48, weight: .medium))
+            .font(.system(size: 40, weight: .medium))
             .foregroundStyle(.green)
 
           Text("测试完成")
-            .font(.system(size: 28, weight: .bold, design: .default))
+            .font(.system(size: 24, weight: .bold, design: .default))
             .foregroundStyle(.primary)
         }
 
         // 结果展示区域 - 统一设计风格
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
           // 主要指标
-          HStack(spacing: 32) {
+          HStack(spacing: 24) {
             StatisticItem(
               icon: "speedometer",
               value: String(format: "%.1f", testState.wpm),
@@ -50,7 +50,7 @@ struct ResultView: View {
           }
 
           // 次要指标
-          HStack(spacing: 32) {
+          HStack(spacing: 24) {
             StatisticItem(
               icon: "textformat.123",
               value: "\(testState.currentIndex)",
@@ -64,18 +64,17 @@ struct ResultView: View {
             )
           }
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 20)
+        .padding(.vertical)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
           RoundedRectangle(cornerRadius: 12)
             .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
         )
 
-        Spacer(minLength: 20)
+        Spacer(minLength: 12)
 
         // 操作按钮 - 统一样式
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
           Button("重新开始", action: onRestart)
             .primaryButtonStyle()
 
@@ -83,12 +82,11 @@ struct ResultView: View {
             .secondaryButtonStyle()
         }
 
-        Spacer(minLength: 20)
+        Spacer(minLength: 12)
       }
-      .padding(.horizontal, 32)
-      .padding(.vertical, 24)
-      .frame(minWidth: 500, minHeight: 400)
+      .padding(.vertical, 20)
     }
+    .frame(minWidth: 280, minHeight: 320)
   }
 }
 

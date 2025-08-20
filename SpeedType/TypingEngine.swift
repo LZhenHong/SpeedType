@@ -33,7 +33,7 @@ enum TypingEngine {
       let errorIndex = findFirstError(
         inputChars: inputChars, targetChars: targetChars, caseSensitive: state.isCaseSensitive
       )
-      if let errorIndex = errorIndex {
+      if let errorIndex {
         // 回退到错误位置
         state.userInput = String(newInput.prefix(errorIndex))
         state.currentIndex = errorIndex
@@ -84,7 +84,7 @@ enum TypingEngine {
     caseSensitive: Bool, state: TypingTestState
   ) {
     let endIndex = min(startIndex + count, min(inputChars.count, targetChars.count))
-    
+
     var correctCount = 0
     var errorCount = 0
     var hasError = false
@@ -101,11 +101,11 @@ enum TypingEngine {
         hasError = true
       }
     }
-    
+
     // 批量更新状态，减少@Observable触发次数
     state.correctChars += correctCount
     state.errorCount += errorCount
-    
+
     if hasError {
       state.triggerShakeAnimation()
     }
@@ -115,7 +115,7 @@ enum TypingEngine {
   private static func charactersMatch(_ input: Character, _ target: Character, caseSensitive: Bool)
     -> Bool
   {
-    return caseSensitive ? input == target : input.lowercased() == target.lowercased()
+    caseSensitive ? input == target : input.lowercased() == target.lowercased()
   }
 
   /// 生成带样式的文本显示
@@ -136,7 +136,8 @@ enum TypingEngine {
           let userChar = userInputChars[index]
           let isMatch =
             state.isCaseSensitive
-              ? userChar == character : userChar.lowercased() == character.lowercased()
+              ? userChar == character
+              : userChar.lowercased() == character.lowercased()
 
           if isMatch {
             // 正确字符

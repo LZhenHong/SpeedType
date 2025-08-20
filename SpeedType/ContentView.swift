@@ -226,13 +226,25 @@ struct ContentView: View {
 }
 
 extension ContentView {
-
   private func shareResult() {
-    let wpm = Int(testState.wpm.rounded())
-    let accuracy = testState.accuracy
-    let timeText = String(format: "%.1f", testState.elapsedTime)
+    if let image = ImageShareHelper.generateResultImage(testState: testState) {
+      ImageShareHelper.shareImage(image)
 
-    let shareText = """
+      // 显示成功提示
+      DispatchQueue.main.async {
+        let alert = NSAlert()
+        alert.messageText = "分享成功"
+        alert.informativeText = "测试结果图片已保存并可分享"
+        alert.addButton(withTitle: "确定")
+        alert.runModal()
+      }
+    } else {
+      // 备用方案：文本分享
+      let wpm = Int(testState.wpm.rounded())
+      let accuracy = testState.accuracy
+      let timeText = String(format: "%.1f", testState.elapsedTime)
+
+      let shareText = """
       🎯 SpeedType 测试结果
 
       ⚡ 速度: \(wpm) WPM
@@ -243,9 +255,19 @@ extension ContentView {
       #SpeedType #打字练习
       """
 
-    let pasteboard = NSPasteboard.general
-    pasteboard.clearContents()
-    pasteboard.setString(shareText, forType: .string)
+      let pasteboard = NSPasteboard.general
+      pasteboard.clearContents()
+      pasteboard.setString(shareText, forType: .string)
+
+      // 显示备用方案提示
+      DispatchQueue.main.async {
+        let alert = NSAlert()
+        alert.messageText = "分享成功"
+        alert.informativeText = "测试结果文本已复制到剪贴板"
+        alert.addButton(withTitle: "确定")
+        alert.runModal()
+      }
+    }
   }
 }
 

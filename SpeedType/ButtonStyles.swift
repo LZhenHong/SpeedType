@@ -13,18 +13,40 @@ extension Button {
   func primaryButtonStyle() -> some View {
     buttonStyle(.borderedProminent)
       .controlSize(.large)
+      .padding(.horizontal, 20)
+      .padding(.vertical, 12)
   }
 
   /// 次要操作按钮样式 - 边框样式
   func secondaryButtonStyle() -> some View {
     buttonStyle(.bordered)
       .controlSize(.large)
+      .padding(.horizontal, 20)
+      .padding(.vertical, 12)
   }
 
   /// 危险操作按钮样式 - 红色边框
   func dangerButtonStyle() -> some View {
     buttonStyle(.bordered)
       .controlSize(.large)
-      .foregroundStyle(.red)
+      .padding(.horizontal, 20)
+      .padding(.vertical, 12)
+      .foregroundStyle(Color.red)
+  }
+
+  /// 紧凑主要按钮样式 - 用于结果页面
+  func compactPrimaryButtonStyle() -> some View {
+    buttonStyle(.borderedProminent)
+      .controlSize(.regular)
+      .padding(.horizontal, 16)
+      .padding(.vertical, 8)
+  }
+
+  /// 紧凑次要按钮样式 - 用于结果页面
+  func compactSecondaryButtonStyle() -> some View {
+    buttonStyle(.bordered)
+      .controlSize(.regular)
+      .padding(.horizontal, 16)
+      .padding(.vertical, 8)
   }
 }

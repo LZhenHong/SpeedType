@@ -25,7 +25,7 @@ struct Challenge: Identifiable, Hashable {
     ),
     Challenge(
       id: "test-qwer",
-      title: "TEST (QWER)",
+      title: "Test (QWER)",
       text: "QWER"
     ),
   ]

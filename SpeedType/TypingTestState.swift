@@ -93,7 +93,7 @@ class TypingTestState {
   private var _targetCharacters: [Character] = []
 
   var targetCharacters: [Character] {
-    return _targetCharacters
+    _targetCharacters
   }
 
   private func updateTargetCharacters() {
@@ -113,7 +113,7 @@ class TypingTestState {
 
   func finishTest() {
     // 先记录最终时间，再停止计时
-    if let startTime = startTime, isTyping {
+    if let startTime, isTyping {
       elapsedTime = CACurrentMediaTime() - startTime
     }
     stopTimer() // 手动停止计时器
@@ -141,7 +141,7 @@ class TypingTestState {
   }
 
   func updateElapsedTime() {
-    guard let startTime = startTime, isTyping else { return }
+    guard let startTime, isTyping else { return }
 
     let currentTime = CACurrentMediaTime()
     elapsedTime = currentTime - startTime
