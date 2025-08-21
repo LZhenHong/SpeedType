@@ -12,21 +12,29 @@ struct Challenge: Identifiable, Hashable {
   let title: String
   let text: String
 
-  static let predefinedChallenges: [Challenge] = [
-    Challenge(
-      id: "alphabet-az",
-      title: "Alphabet (A-Z)",
-      text: "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    ),
-    Challenge(
-      id: "keyboard-qwerty",
-      title: "Keyboard Layout (QWERTY)",
-      text: "QWERTYUIOPASDFGHJKLZXCVBNM"
-    ),
-    Challenge(
-      id: "test-qwer",
-      title: "Test (QWER)",
-      text: "QWER"
-    ),
-  ]
+  static let predefinedChallenges: [Challenge] = {
+    var challenges = [
+      Challenge(
+        id: "alphabet-az",
+        title: "Alphabet (A-Z)",
+        text: "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      ),
+      Challenge(
+        id: "keyboard-qwerty",
+        title: "Keyboard Layout (QWERTY)",
+        text: "QWERTYUIOPASDFGHJKLZXCVBNM"
+      ),
+    ]
+
+    #if DEBUG
+      challenges.append(
+        Challenge(
+          id: "test-qwer",
+          title: "Test (QWER)",
+          text: "QWER"
+        ))
+    #endif
+
+    return challenges
+  }()
 }
