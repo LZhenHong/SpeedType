@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import QuartzCore
 import SwiftUI
 
 struct ContentView: View {
@@ -14,6 +15,8 @@ struct ContentView: View {
   @State private var testState = TypingTestState()
   @FocusState private var isInputFocused: Bool
   @State private var showResultView = false
+  @State private var frameTimer: Timer?
+  @State private var refreshTrigger = 0
 
   // MARK: - Body
 
@@ -125,8 +128,18 @@ struct ContentView: View {
         testState.changeChallenge(newValue)
       }
     }
+    .onChange(of: testState.isTyping) { _, isTyping in
+      if isTyping {
+        startFrameTimer()
+      } else {
+        stopFrameTimer()
+      }
+    }
     .onAppear {
       isInputFocused = true
+    }
+    .onDisappear {
+      stopFrameTimer()
     }
     .sheet(isPresented: $showResultView) {
       ResultView(
@@ -222,8 +235,9 @@ struct ContentView: View {
       MacStatisticItem(icon: "speedometer", iconColor: .systemBlue, value: String(format: "%.1f", testState.wpm), label: "WPM")
       MacStatisticItem(icon: "checkmark.circle", iconColor: .systemGreen, value: "\(testState.accuracy)%", label: "准确率")
       MacStatisticItem(icon: "textformat.123", iconColor: Color.systemPurple, value: "\(testState.currentIndex)", label: "字符")
-      MacStatisticItem(icon: "clock", iconColor: Color.systemOrange, value: String(format: "%05.2fs", testState.elapsedTime), label: "时间")
+      MacStatisticItem(icon: "clock", iconColor: Color.systemOrange, value: String(format: "%.3fs", testState.elapsedTime), label: "时间")
     }
+    .id(refreshTrigger) // 强制刷新时间显示
     .padding(MacSpacing.sectionPadding)
     .background(
       RoundedRectangle(cornerRadius: MacCornerRadius.large)
@@ -264,6 +278,36 @@ struct MacToggleOption: View {
 }
 
 extension ContentView {
+  // MARK: - Frame Timer Management
+
+  private func startFrameTimer() {
+    stopFrameTimer() // 确保没有重复的定时器
+
+    // 60fps 刷新率，与大多数显示器的刷新率匹配
+    frameTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
+      refreshTimerDisplay()
+    }
+
+    // 将 Timer 添加到 common run loop 模式以确保在滚动等操作时也能正常工作
+    if let frameTimer {
+      RunLoop.current.add(frameTimer, forMode: .common)
+    }
+  }
+
+  private func stopFrameTimer() {
+    frameTimer?.invalidate()
+    frameTimer = nil
+  }
+
+  private func refreshTimerDisplay() {
+    if testState.isTyping {
+      // 通过修改 refreshTrigger 来强制界面刷新
+      refreshTrigger += 1
+    }
+  }
+
+  // MARK: - Share Functionality
+
   private func shareResult() {
     if let image = ImageShareHelper.generateResultImage(testState: testState) {
       ImageShareHelper.shareImage(image)
@@ -280,7 +324,7 @@ extension ContentView {
       // 备用方案：文本分享
       let wpm = Int(testState.wpm.rounded())
       let accuracy = testState.accuracy
-      let timeText = String(format: "%.1f", testState.elapsedTime)
+      let timeText = String(format: "%.3f", testState.elapsedTime)
 
       let shareText = """
       🎯 SpeedType 测试结果

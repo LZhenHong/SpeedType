@@ -84,7 +84,7 @@ class ImageShareHelper {
 
     drawMetric(
       icon: "⏱️",
-      value: String(format: "%.2f", testState.elapsedTime),
+      value: String(format: "%.3f", testState.elapsedTime),
       label: "时间",
       at: NSPoint(x: contentRect.midX - 50, y: secondaryY)
     )

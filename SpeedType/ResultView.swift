@@ -74,7 +74,7 @@ struct ResultView: View {
             MacResultCard(
               icon: "clock",
               iconColor: Color.systemOrange,
-              value: String(format: "%.1f", testState.elapsedTime),
+              value: String(format: "%.3f", testState.elapsedTime),
               label: "时间",
               subtitle: "秒"
             )
@@ -162,7 +162,9 @@ struct MacResultCard: View {
     let state = TypingTestState()
     state.correctChars = 250
     state.errorCount = 10
-    state.elapsedTime = 60.0
+    // 模拟完成的测试：设置开始和结束时间
+    let currentTime = CACurrentMediaTime()
+    state.setMockTimeForPreview(startTime: currentTime - 60.0, endTime: currentTime)
     state.currentIndex = 260
     state.isFinished = true
     return state

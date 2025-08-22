@@ -13,28 +13,6 @@ import SwiftUI
 /// 集中管理所有测试相关的状态，避免分散在 UI 层
 @Observable
 class TypingTestState {
-  // MARK: - Timer Management (必须在属性之前定义)
-
-  private func startTimer() {
-    stopTimer() // 确保没有重复的定时器
-    timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-      self?.updateElapsedTime()
-    }
-  }
-
-  private func stopTimer() {
-    timer?.invalidate()
-    timer = nil
-  }
-
-  private func handleTypingStateChange(_ newValue: Bool, oldValue: Bool) {
-    if newValue, !oldValue {
-      startTimer()
-    } else if !newValue, oldValue {
-      stopTimer()
-    }
-  }
-
   // MARK: - Core State
 
   var selectedChallenge: Challenge = .predefinedChallenges[0]
@@ -56,9 +34,7 @@ class TypingTestState {
   var isTyping: Bool = false
   var isFinished: Bool = false
   private var startTime: CFTimeInterval?
-  var elapsedTime: TimeInterval = 0
-  private var lastUpdateTime: CFTimeInterval = 0
-  private var timer: Timer?
+  private var endTime: CFTimeInterval?
 
   // MARK: - Statistics
 
@@ -71,6 +47,20 @@ class TypingTestState {
   private var shakeTask: Task<Void, Never>?
 
   // MARK: - Computed Properties
+
+  /// 计算当前的经过时间
+  var elapsedTime: TimeInterval {
+    if let startTime {
+      if let endTime {
+        // 测试已结束，返回最终时间
+        return endTime - startTime
+      } else if isTyping {
+        // 测试进行中，返回当前时间差
+        return CACurrentMediaTime() - startTime
+      }
+    }
+    return 0
+  }
 
   var wpm: Double {
     guard elapsedTime > 0 else { return 0 }
@@ -103,34 +93,24 @@ class TypingTestState {
   // MARK: - State Management
 
   func startTest() {
-    let currentTime = CACurrentMediaTime()
-    startTime = currentTime
-    lastUpdateTime = currentTime
-    elapsedTime = 0
+    startTime = CACurrentMediaTime()
+    endTime = nil
     isTyping = true
-    startTimer() // 手动启动计时器
   }
 
   func finishTest() {
-    // 先记录最终时间，再停止计时
-    if let startTime, isTyping {
-      elapsedTime = CACurrentMediaTime() - startTime
-    }
-    stopTimer() // 手动停止计时器
+    endTime = CACurrentMediaTime()
     isTyping = false
     isFinished = true
-    startTime = nil
     // 清理输入状态，但保留统计数据
     userInput = ""
   }
 
   func resetTest() {
-    stopTimer() // 手动停止计时器
     isTyping = false
     isFinished = false
     startTime = nil
-    lastUpdateTime = 0
-    elapsedTime = 0
+    endTime = nil
     currentIndex = 0
     correctChars = 0
     errorCount = 0
@@ -138,14 +118,6 @@ class TypingTestState {
     shouldShake = false
     shakeTask?.cancel()
     shakeTask = nil
-  }
-
-  func updateElapsedTime() {
-    guard let startTime, isTyping else { return }
-
-    let currentTime = CACurrentMediaTime()
-    elapsedTime = currentTime - startTime
-    lastUpdateTime = currentTime
   }
 
   func changeChallenge(_ newChallenge: Challenge) {
@@ -167,5 +139,12 @@ class TypingTestState {
         shouldShake = false
       }
     }
+  }
+
+  // MARK: - Preview Helper (仅用于预览)
+
+  func setMockTimeForPreview(startTime: CFTimeInterval, endTime: CFTimeInterval) {
+    self.startTime = startTime
+    self.endTime = endTime
   }
 }
