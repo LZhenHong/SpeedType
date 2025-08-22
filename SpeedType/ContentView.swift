@@ -89,8 +89,8 @@ struct ContentView: View {
             }
           } else if testState.isTyping {
             Button("结束测试") {
-              testState.finishTest()
-              showResultView = true
+              testState.resetTest()
+              isInputFocused = true
             }
             .macDestructiveStyle()
             .keyboardShortcut(.escape)
