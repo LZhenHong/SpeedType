@@ -7,30 +7,121 @@
 
 import SwiftUI
 
-/// 统一的按钮样式扩展
+// MARK: - macOS Native Button Styles
+
+struct MacPrimaryButtonStyle: ButtonStyle {
+  @Environment(\.isEnabled) private var isEnabled
+  @Environment(\.colorScheme) private var colorScheme
+
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .font(.headline)
+      .foregroundStyle(.white)
+      .padding(.horizontal, MacSpacing.lg)
+      .padding(.vertical, MacSpacing.controlPadding)
+      .background(
+        RoundedRectangle(cornerRadius: MacCornerRadius.medium)
+          .fill(buttonColor(isPressed: configuration.isPressed))
+      )
+      .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+      .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+  }
+
+  private func buttonColor(isPressed: Bool) -> Color {
+    if !isEnabled {
+      return Color.controlBackground
+    }
+
+    if isPressed {
+      return Color.controlAccent.opacity(0.8)
+    }
+
+    return Color.controlAccent
+  }
+}
+
+struct MacSecondaryButtonStyle: ButtonStyle {
+  @Environment(\.isEnabled) private var isEnabled
+  @Environment(\.colorScheme) private var colorScheme
+
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .font(.headline)
+      .foregroundStyle(isEnabled ? Color.primaryLabel : Color.quaternaryLabel)
+      .padding(.horizontal, MacSpacing.lg)
+      .padding(.vertical, MacSpacing.controlPadding)
+      .background(
+        RoundedRectangle(cornerRadius: MacCornerRadius.medium)
+          .fill(configuration.isPressed ? Color.selectedControlColor : Color.controlBackground)
+          .overlay(
+            RoundedRectangle(cornerRadius: MacCornerRadius.medium)
+              .stroke(Color.separator, lineWidth: 0.5)
+          )
+      )
+      .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+      .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+  }
+}
+
+struct MacDestructiveButtonStyle: ButtonStyle {
+  @Environment(\.isEnabled) private var isEnabled
+  @Environment(\.colorScheme) private var colorScheme
+
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .font(.headline)
+      .foregroundStyle(isEnabled ? Color.systemRed : Color.quaternaryLabel)
+      .padding(.horizontal, MacSpacing.lg)
+      .padding(.vertical, MacSpacing.controlPadding)
+      .background(
+        RoundedRectangle(cornerRadius: MacCornerRadius.medium)
+          .fill(configuration.isPressed ? Color.systemRed.opacity(0.1) : Color.controlBackground)
+          .overlay(
+            RoundedRectangle(cornerRadius: MacCornerRadius.medium)
+              .stroke(isEnabled ? Color.systemRed.opacity(0.3) : Color.separator, lineWidth: 1)
+          )
+      )
+      .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+      .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+  }
+}
+
+// MARK: - Borderless Button (用于工具栏等场景)
+
+struct MacBorderlessButtonStyle: ButtonStyle {
+  @Environment(\.isEnabled) private var isEnabled
+
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .font(.body)
+      .foregroundStyle(isEnabled ? Color.controlAccent : Color.quaternaryLabel)
+      .padding(.horizontal, MacSpacing.sm)
+      .padding(.vertical, MacSpacing.xs)
+      .background(
+        RoundedRectangle(cornerRadius: MacCornerRadius.small)
+          .fill(configuration.isPressed ? Color.selectedControlColor : Color.clear)
+      )
+      .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+      .animation(.easeInOut(duration: 0.08), value: configuration.isPressed)
+  }
+}
+
+// MARK: - Button Style Extensions
+
 extension Button {
-  /// 主要操作按钮样式 - 突出显示
-  func primaryButtonStyle() -> some View {
-    buttonStyle(.borderedProminent)
-      .controlSize(.large)
-      .padding(.horizontal, 20)
-      .padding(.vertical, 12)
+  func macPrimaryStyle() -> some View {
+    buttonStyle(MacPrimaryButtonStyle())
   }
 
-  /// 次要操作按钮样式 - 边框样式
-  func secondaryButtonStyle() -> some View {
-    buttonStyle(.bordered)
-      .controlSize(.large)
-      .padding(.horizontal, 20)
-      .padding(.vertical, 12)
+  func macSecondaryStyle() -> some View {
+    buttonStyle(MacSecondaryButtonStyle())
   }
 
-  /// 危险操作按钮样式 - 红色边框
-  func dangerButtonStyle() -> some View {
-    buttonStyle(.bordered)
-      .controlSize(.large)
-      .padding(.horizontal, 20)
-      .padding(.vertical, 12)
-      .foregroundStyle(Color.red)
+  func macDestructiveStyle() -> some View {
+    buttonStyle(MacDestructiveButtonStyle())
+  }
+
+  func macBorderlessStyle() -> some View {
+    buttonStyle(MacBorderlessButtonStyle())
   }
 }

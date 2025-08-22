@@ -128,7 +128,7 @@ class ImageShareHelper {
     icon.draw(at: NSPoint(x: point.x, y: point.y + 40), withAttributes: iconAttributes)
 
     // 数值
-    let valueSize = value.size(withAttributes: valueAttributes)
+    _ = value.size(withAttributes: valueAttributes)
     value.draw(
       at: NSPoint(x: point.x + iconSize.width + 10, y: point.y + 35),
       withAttributes: valueAttributes

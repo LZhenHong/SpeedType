@@ -14,79 +14,146 @@ struct ResultView: View {
 
   var body: some View {
     ZStack {
-      // 统一的macOS背景
-      Color(NSColor.windowBackgroundColor)
+      // macOS 原生背景
+      Color.windowBackground
         .ignoresSafeArea()
 
-      VStack(spacing: 16) {
-        Spacer(minLength: 12)
+      VStack(spacing: MacSpacing.xl) {
+        Spacer(minLength: MacSpacing.lg)
 
-        // 标题区域 - macOS原生样式
-        VStack(spacing: 8) {
+        // 标题区域 - macOS 风格
+        VStack(spacing: MacSpacing.lg) {
           Image(systemName: "checkmark.circle.fill")
-            .font(.system(size: 40, weight: .medium))
-            .foregroundStyle(.green)
+            .font(.system(size: 48, weight: .medium))
+            .foregroundStyle(Color.systemGreen)
+            .symbolRenderingMode(.hierarchical)
 
-          Text("测试完成")
-            .font(.system(size: 24, weight: .bold, design: .default))
-            .foregroundStyle(.primary)
+          VStack(spacing: MacSpacing.xs) {
+            Text("测试完成")
+              .font(.title)
+              .fontWeight(.semibold)
+              .foregroundStyle(Color.primaryLabel)
+
+            Text("恭喜你完成了打字测试！")
+              .font(.body)
+              .foregroundStyle(Color.secondaryLabel)
+          }
         }
 
-        // 结果展示区域 - 统一设计风格
-        VStack(spacing: 16) {
-          // 主要指标
-          HStack(spacing: 24) {
-            StatisticItem(
+        // 结果展示区域 - macOS 卡片布局
+        VStack(spacing: MacSpacing.lg) {
+          // 主要指标卡片
+          HStack(spacing: MacSpacing.lg) {
+            MacResultCard(
               icon: "speedometer",
+              iconColor: Color.systemBlue,
               value: String(format: "%.1f", testState.wpm),
-              label: "WPM"
+              label: "WPM",
+              subtitle: "每分钟字数"
             )
 
-            StatisticItem(
+            MacResultCard(
               icon: "target",
+              iconColor: Color.systemGreen,
               value: "\(testState.accuracy)%",
-              label: "准确率"
+              label: "准确率",
+              subtitle: "正确率"
             )
           }
 
-          // 次要指标
-          HStack(spacing: 24) {
-            StatisticItem(
+          // 次要指标卡片
+          HStack(spacing: MacSpacing.lg) {
+            MacResultCard(
               icon: "textformat.123",
+              iconColor: Color.systemPurple,
               value: "\(testState.currentIndex)",
-              label: "字符"
+              label: "字符",
+              subtitle: "总字符数"
             )
 
-            StatisticItem(
+            MacResultCard(
               icon: "clock",
-              value: String(format: "%.2f", testState.elapsedTime),
-              label: "时间"
+              iconColor: Color.systemOrange,
+              value: String(format: "%.1f", testState.elapsedTime),
+              label: "时间",
+              subtitle: "秒"
             )
           }
         }
-        .padding(.vertical)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(
-          RoundedRectangle(cornerRadius: 12)
-            .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-        )
 
-        Spacer(minLength: 12)
+        Spacer(minLength: MacSpacing.lg)
 
-        // 操作按钮 - 统一样式
-        HStack(spacing: 8) {
-          Button("重新开始", action: onRestart)
-            .primaryButtonStyle()
+        // 操作按钮区域
+        VStack(spacing: MacSpacing.sm) {
+          HStack(spacing: MacSpacing.lg) {
+            Button("重新开始", action: onRestart)
+              .macPrimaryStyle()
+              .keyboardShortcut(.defaultAction)
 
-          Button("分享结果", action: onShare)
-            .secondaryButtonStyle()
+            Button("分享结果", action: onShare)
+              .macSecondaryStyle()
+          }
+
+          Text("按 Return 重新开始测试")
+            .font(.caption)
+            .foregroundStyle(Color.tertiaryLabel)
         }
 
-        Spacer(minLength: 12)
+        Spacer(minLength: MacSpacing.lg)
       }
-      .padding(.vertical, 20)
+      .padding(.horizontal, MacSpacing.xl)
+      .padding(.vertical, MacSpacing.lg)
     }
-    .frame(minWidth: 280, minHeight: 320)
+    .frame(minWidth: 420, minHeight: 520)
+  }
+}
+
+// MARK: - macOS Result Card Component
+
+struct MacResultCard: View {
+  let icon: String
+  let iconColor: Color
+  let value: String
+  let label: String
+  let subtitle: String
+
+  var body: some View {
+    VStack(spacing: MacSpacing.md) {
+      // 图标区域
+      Image(systemName: icon)
+        .font(.title)
+        .foregroundStyle(iconColor)
+        .symbolRenderingMode(.hierarchical)
+        .frame(height: 28)
+
+      // 数值区域
+      VStack(spacing: MacSpacing.xs) {
+        Text(value)
+          .font(.title.monospaced())
+          .fontWeight(.bold)
+          .foregroundStyle(Color.primaryLabel)
+
+        Text(label)
+          .font(.headline)
+          .foregroundStyle(Color.secondaryLabel)
+
+        Text(subtitle)
+          .font(.caption)
+          .foregroundStyle(Color.tertiaryLabel)
+      }
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.vertical, MacSpacing.lg)
+    .padding(.horizontal, MacSpacing.md)
+    .background(
+      RoundedRectangle(cornerRadius: MacCornerRadius.large)
+        .fill(Color.contentBackground)
+        .overlay(
+          RoundedRectangle(cornerRadius: MacCornerRadius.large)
+            .stroke(Color.separator, lineWidth: 1)
+        )
+    )
+    .macOSShadow(.subtle)
   }
 }
 

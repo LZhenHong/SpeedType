@@ -20,25 +20,33 @@ struct ContentView: View {
   var body: some View {
     ZStack {
       // macOS 原生背景
-      Color(NSColor.windowBackgroundColor)
+      Color.windowBackground
         .ignoresSafeArea()
 
-      VStack(spacing: 32) {
-        // 标题 - 使用 macOS 大标题样式
-        Text("SpeedType")
-          .font(.system(size: 34, weight: .bold, design: .default))
-          .foregroundStyle(.primary)
+      VStack(spacing: MacSpacing.xxxl) {
+        // 标题区域 - macOS 风格
+        VStack(spacing: MacSpacing.sm) {
+          Text("SpeedType")
+            .font(.largeTitle)
+            .fontWeight(.bold)
+            .foregroundStyle(Color.primaryLabel)
+
+          Text("测试你的打字速度")
+            .font(.title3)
+            .foregroundStyle(Color.secondaryLabel)
+        }
+        .padding(.top, MacSpacing.windowPadding)
 
         // 配置面板（仅在未开始时显示）
         if !testState.isTyping {
           configurationPanel
+            .transition(.opacity.combined(with: .scale(scale: 0.95)))
         }
 
         Spacer()
 
         // 文本显示和输入区域
-        VStack(spacing: 20) {
-          // 文本显示
+        VStack(spacing: MacSpacing.lg) {
           textDisplayView
 
           // 隐藏的文本输入框
@@ -63,43 +71,56 @@ struct ContentView: View {
         // 统计信息
         statisticsView
 
-        // 控制按钮
-        if testState.isFinished {
-          HStack(spacing: 16) {
-            Button("重新开始") {
-              testState.resetTest()
-              isInputFocused = true
-            }
-            .primaryButtonStyle()
-            .keyboardShortcut(.defaultAction)
+        // 控制按钮区域
+        VStack(spacing: MacSpacing.md) {
+          if testState.isFinished {
+            HStack(spacing: MacSpacing.lg) {
+              Button("重新开始") {
+                testState.resetTest()
+                isInputFocused = true
+              }
+              .macPrimaryStyle()
+              .keyboardShortcut(.defaultAction)
 
-            Button("查看结果") {
+              Button("查看结果") {
+                showResultView = true
+              }
+              .macSecondaryStyle()
+            }
+          } else if testState.isTyping {
+            Button("结束测试") {
+              testState.finishTest()
               showResultView = true
             }
-            .secondaryButtonStyle()
+            .macDestructiveStyle()
+            .keyboardShortcut(.escape)
+          } else {
+            Button("开始测试") {
+              testState.startTest()
+              isInputFocused = true
+            }
+            .macPrimaryStyle()
+            .keyboardShortcut(.defaultAction)
           }
-        } else if testState.isTyping {
-          Button("结束测试") {
-            testState.finishTest()
-            showResultView = true
+
+          // 键盘快捷键提示
+          Group {
+            if !testState.isTyping {
+              Text("按 Return 开始测试")
+            } else {
+              Text("按 Escape 结束测试")
+            }
           }
-          .dangerButtonStyle()
-          .keyboardShortcut(.escape)
-        } else {
-          Button("开始测试") {
-            testState.startTest()
-            isInputFocused = true
-          }
-          .primaryButtonStyle()
-          .keyboardShortcut(.defaultAction)
+          .font(.caption)
+          .foregroundStyle(Color.tertiaryLabel)
         }
+        .padding(.bottom, MacSpacing.windowPadding)
       }
-      .padding(.horizontal, 48)
-      .padding(.vertical, 32)
+      .padding(.horizontal, MacSpacing.windowPadding)
     }
-    .frame(minWidth: 900, minHeight: 650)
+    .frame(minWidth: 800, minHeight: 600)
+    .animation(.easeInOut(duration: 0.3), value: testState.isTyping)
     .onChange(of: testState.selectedChallenge) { _, newValue in
-      // 只在非完成状态时才重置测试，避免破坏结果显示
       if !testState.isFinished {
         testState.changeChallenge(newValue)
       }
@@ -107,7 +128,6 @@ struct ContentView: View {
     .onAppear {
       isInputFocused = true
     }
-
     .sheet(isPresented: $showResultView) {
       ResultView(
         testState: testState,
@@ -127,35 +147,35 @@ struct ContentView: View {
 
   private var textDisplayView: some View {
     Text(TypingEngine.generateAttributedText(for: testState))
-      .font(.system(size: 20, weight: .medium, design: .monospaced))
+      .font(.inputMonospaced)
       .lineSpacing(10)
       .multilineTextAlignment(.leading)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.horizontal, 32)
-      .padding(.vertical, 24)
-      .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 16))
-      .overlay(
-        RoundedRectangle(cornerRadius: 16)
-          .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+      .padding(.vertical, MacSpacing.xxl)
+      .padding(.horizontal, MacSpacing.xxxl)
+      .background(
+        RoundedRectangle(cornerRadius: MacCornerRadius.large)
+          .fill(Color.contentBackground)
+          .overlay(
+            RoundedRectangle(cornerRadius: MacCornerRadius.large)
+              .stroke(Color.separator, lineWidth: 1)
+          )
       )
-      .offset(x: testState.shouldShake ? 15 : 0)
+      .macOSShadow(.subtle)
+      .offset(x: testState.shouldShake ? 8 : 0)
       .animation(
         testState.shouldShake
-          ? Animation.easeInOut(duration: 0.06).repeatCount(8, autoreverses: true)
+          ? Animation.easeInOut(duration: 0.06).repeatCount(6, autoreverses: true)
           : .default,
         value: testState.shouldShake
       )
   }
 
   private var configurationPanel: some View {
-    VStack(spacing: 20) {
+    HStack(spacing: MacSpacing.lg) {
       // 挑战选择区域
-      HStack {
-        Text("选择挑战:")
-          .font(.system(size: 16, weight: .semibold))
-          .foregroundStyle(.primary)
-
-        Picker("", selection: $testState.selectedChallenge) {
+      HStack(spacing: MacSpacing.md) {
+        Picker("选择挑战：", selection: $testState.selectedChallenge) {
           ForEach(Challenge.predefinedChallenges, id: \.id) { challenge in
             Text(challenge.title).tag(challenge)
           }
@@ -164,64 +184,82 @@ struct ContentView: View {
         .controlSize(.regular)
         .fixedSize()
         .disabled(testState.isFinished)
-
-        Spacer()
       }
+
+      Spacer()
 
       // 设置选项区域
-      HStack(spacing: 32) {
-        HStack(spacing: 12) {
-          Image(systemName: "textformat.abc")
-            .font(.system(size: 14, weight: .medium))
-            .foregroundStyle(.secondary)
-            .frame(width: 16)
+      HStack(spacing: MacSpacing.xxxl) {
+        MacToggleOption(
+          icon: "textformat.abc",
+          title: "大小写敏感",
+          isOn: $testState.isCaseSensitive
+        )
 
-          Toggle("大小写敏感", isOn: $testState.isCaseSensitive)
-            .toggleStyle(.switch)
-            .controlSize(.regular)
-        }
-
-        HStack(spacing: 12) {
-          Image(systemName: "exclamationmark.triangle")
-            .font(.system(size: 14, weight: .medium))
-            .foregroundStyle(.secondary)
-            .frame(width: 16)
-
-          Toggle("严格模式", isOn: $testState.isStrictMode)
-            .toggleStyle(.switch)
-            .controlSize(.regular)
-        }
-
-        Spacer()
+        MacToggleOption(
+          icon: "exclamationmark.triangle",
+          title: "严格模式",
+          isOn: $testState.isStrictMode
+        )
       }
     }
-    .padding(.horizontal, 24)
-    .padding(.vertical, 20)
-    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-    .overlay(
-      RoundedRectangle(cornerRadius: 12)
-        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+    .padding(MacSpacing.sectionPadding)
+    .background(
+      RoundedRectangle(cornerRadius: MacCornerRadius.large)
+        .fill(Color.contentBackground)
+        .overlay(
+          RoundedRectangle(cornerRadius: MacCornerRadius.large)
+            .stroke(Color.separator, lineWidth: 1)
+        )
     )
+    .macOSShadow(.subtle)
   }
 
   // MARK: - Statistics View
 
   private var statisticsView: some View {
-    HStack(spacing: 48) {
-      StatisticItem(icon: "speedometer", value: String(format: "%.1f", testState.wpm), label: "WPM")
-      StatisticItem(icon: "checkmark.circle", value: "\(testState.accuracy)%", label: "准确率")
-      StatisticItem(icon: "textformat.123", value: "\(testState.currentIndex)", label: "字符")
-      StatisticItem(
-        icon: "clock", value: String(format: "%05.2fs", testState.elapsedTime), label: "时间"
-      )
+    HStack(spacing: MacSpacing.xxxl) {
+      MacStatisticItem(icon: "speedometer", iconColor: .systemBlue, value: String(format: "%.1f", testState.wpm), label: "WPM")
+      MacStatisticItem(icon: "checkmark.circle", iconColor: .systemGreen, value: "\(testState.accuracy)%", label: "准确率")
+      MacStatisticItem(icon: "textformat.123", iconColor: Color.systemPurple, value: "\(testState.currentIndex)", label: "字符")
+      MacStatisticItem(icon: "clock", iconColor: Color.systemOrange, value: String(format: "%05.2fs", testState.elapsedTime), label: "时间")
     }
-    .padding(.horizontal, 32)
-    .padding(.vertical, 20)
-    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-    .overlay(
-      RoundedRectangle(cornerRadius: 12)
-        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+    .padding(MacSpacing.sectionPadding)
+    .background(
+      RoundedRectangle(cornerRadius: MacCornerRadius.large)
+        .fill(Color.contentBackground)
+        .overlay(
+          RoundedRectangle(cornerRadius: MacCornerRadius.large)
+            .stroke(Color.separator, lineWidth: 1)
+        )
     )
+    .macOSShadow(.subtle)
+    .frame(width: 450)
+  }
+}
+
+// MARK: - macOS Style Components
+
+struct MacToggleOption: View {
+  let icon: String
+  let title: String
+  @Binding var isOn: Bool
+
+  var body: some View {
+    HStack(spacing: MacSpacing.md) {
+      Image(systemName: icon)
+        .font(.body)
+        .foregroundStyle(Color.controlAccent)
+        .frame(width: 16, height: 16)
+
+      Text(title)
+        .font(.body)
+        .foregroundStyle(Color.primaryLabel)
+
+      Toggle("", isOn: $isOn)
+        .toggleStyle(.switch)
+        .controlSize(.small)
+    }
   }
 }
 
