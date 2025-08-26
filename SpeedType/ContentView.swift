@@ -5,7 +5,7 @@
 //  Created by Eden on 2024/12/19.
 //
 
-import Foundation
+import AppKit
 import QuartzCore
 import SwiftUI
 
@@ -15,7 +15,7 @@ struct ContentView: View {
   @State private var testState = TypingTestState()
   @FocusState private var isInputFocused: Bool
   @State private var showResultView = false
-  @State private var frameTimer: Timer?
+  @State private var displayTimer: Timer?
   @State private var refreshTrigger = 0
 
   // MARK: - Body
@@ -130,16 +130,24 @@ struct ContentView: View {
     }
     .onChange(of: testState.isTyping) { _, isTyping in
       if isTyping {
-        startFrameTimer()
+        startDisplayLink()
       } else {
-        stopFrameTimer()
+        stopDisplayLink()
       }
     }
     .onAppear {
       isInputFocused = true
     }
+    .onKeyPress(.escape) {
+      if testState.isTyping {
+        testState.resetTest()
+        isInputFocused = true
+        return .handled
+      }
+      return .ignored
+    }
     .onDisappear {
-      stopFrameTimer()
+      stopDisplayLink()
     }
     .sheet(isPresented: $showResultView) {
       ResultView(
@@ -232,10 +240,30 @@ struct ContentView: View {
 
   private var statisticsView: some View {
     HStack(spacing: MacSpacing.xxxl) {
-      MacStatisticItem(icon: "speedometer", iconColor: .systemBlue, value: String(format: "%.1f", testState.wpm), label: "WPM")
-      MacStatisticItem(icon: "checkmark.circle", iconColor: .systemGreen, value: "\(testState.accuracy)%", label: "准确率")
-      MacStatisticItem(icon: "textformat.123", iconColor: Color.systemPurple, value: "\(testState.currentIndex)", label: "字符")
-      MacStatisticItem(icon: "clock", iconColor: Color.systemOrange, value: String(format: "%.3fs", testState.elapsedTime), label: "时间")
+      MacStatisticItem(
+        icon: "speedometer",
+        iconColor: .systemBlue,
+        value: String(format: "%.1f", testState.wpm),
+        label: "WPM"
+      )
+      MacStatisticItem(
+        icon: "checkmark.circle",
+        iconColor: .systemGreen,
+        value: "\(testState.accuracy)%",
+        label: "准确率"
+      )
+      MacStatisticItem(
+        icon: "textformat.123",
+        iconColor: Color.systemPurple,
+        value: "\(testState.currentIndex)",
+        label: "字符"
+      )
+      MacStatisticItem(
+        icon: "clock",
+        iconColor: Color.systemOrange,
+        value: String(format: "%.3fs", testState.elapsedTime),
+        label: "时间"
+      )
     }
     .id(refreshTrigger) // 强制刷新时间显示
     .padding(MacSpacing.sectionPadding)
@@ -278,25 +306,25 @@ struct MacToggleOption: View {
 }
 
 extension ContentView {
-  // MARK: - Frame Timer Management
+  // MARK: - Display Link Management
 
-  private func startFrameTimer() {
-    stopFrameTimer() // 确保没有重复的定时器
+  private func startDisplayLink() {
+    stopDisplayLink() // 确保没有重复的定时器
 
-    // 60fps 刷新率，与大多数显示器的刷新率匹配
-    frameTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
+    // 使用高精度 Timer，与显示刷新率同步 (60fps)
+    displayTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
       refreshTimerDisplay()
     }
 
-    // 将 Timer 添加到 common run loop 模式以确保在滚动等操作时也能正常工作
-    if let frameTimer {
-      RunLoop.current.add(frameTimer, forMode: .common)
+    // 将 Timer 添加到 RunLoop 的 common 模式，确保在界面交互时也能正常工作
+    if let timer = displayTimer {
+      RunLoop.current.add(timer, forMode: .common)
     }
   }
 
-  private func stopFrameTimer() {
-    frameTimer?.invalidate()
-    frameTimer = nil
+  private func stopDisplayLink() {
+    displayTimer?.invalidate()
+    displayTimer = nil
   }
 
   private func refreshTimerDisplay() {

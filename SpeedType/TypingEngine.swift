@@ -20,6 +20,11 @@ enum TypingEngine {
       return
     }
 
+    // 如果输入为空，不自动开始测试
+    guard !newInput.isEmpty else {
+      return
+    }
+
     // 自动开始测试
     if !state.isTyping {
       state.startTest()
