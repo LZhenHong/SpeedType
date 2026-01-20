@@ -4,97 +4,53 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SpeedType is a macOS typing speed test and practice application built with SwiftUI. Users can test their typing speed on predefined challenges (like alphabet sequences or QWERTY keyboard layout) and share their results as visually appealing cards with QR codes that allow others to attempt the same challenge.
+SpeedType is a macOS typing speed test application built with SwiftUI. Users test their typing speed on predefined challenges and share results as visual cards with QR codes.
 
 ## Development Commands
 
-### Building the Application
 ```bash
-# Build for debugging
+# Build
 xcodebuild -project SpeedType.xcodeproj -scheme SpeedType -configuration Debug build
-
-# Build for release
 xcodebuild -project SpeedType.xcodeproj -scheme SpeedType -configuration Release build
 
-# Clean build artifacts
+# Clean
 xcodebuild -project SpeedType.xcodeproj -scheme SpeedType clean
-```
 
-### Running the Application
-```bash
-# Build and run (opens in Simulator or connected device)
-xcodebuild -project SpeedType.xcodeproj -scheme SpeedType -configuration Debug run
+# Run
+open SpeedType.xcodeproj  # then ⌘R in Xcode
 
-# Or open in Xcode for interactive development
-open SpeedType.xcodeproj
-```
-
-### Project Information
-```bash
-# List available schemes and configurations
-xcodebuild -list -project SpeedType.xcodeproj
+# Format code (uses .swiftformat config)
+swiftformat .
 ```
 
 ## Architecture Overview
 
-### Core Structure
-The application follows a clean SwiftUI architecture with separation of concerns:
+### State Management Pattern
+The app uses a centralized state + engine pattern:
+- **`TypingTestState`** (`@Observable`): Manages test lifecycle, timing (via `CACurrentMediaTime()`), and statistics
+- **`TypingEngine`**: Stateless utility that processes input and updates state
+- **UI Views**: React to state changes and delegate actions to the engine
 
-- **`SpeedTypeApp.swift`**: Main app entry point using SwiftUI's `@main` attribute
-- **`ContentView.swift`**: Main UI view coordinating the typing test interface
-- **`TypingTestState.swift`**: Observable state model managing all test-related state and timing logic
-- **`TypingEngine.swift`**: Core typing logic engine that processes input and updates state
-- **`Challenge.swift`**: Data model defining typing challenges with predefined challenges array
-- **`ResultView.swift`**: SwiftUI view for displaying test completion results
-- **`StatisticItem.swift`**: Reusable component for displaying statistics (WPM, accuracy, etc.)
-- **`ImageShareHelper.swift`**: Utility for generating shareable result images with watermarks
-- **`ButtonStyles.swift`**: Custom button styles for consistent UI appearance
-
-### Key Features Implementation
-- **High-precision timing**: Uses `CACurrentMediaTime()` for accurate timing measurements
-- **Real-time input validation**: Character-by-character comparison with visual feedback
-- **Custom URL scheme**: `speedtype://` for challenge sharing via QR codes
-- **Statistics calculation**: WPM (words per minute), accuracy percentage, character count
-- **Share functionality**: Generates result images that can be copied to clipboard
-- **Clean architecture**: Separation of UI, state management, and business logic
-
-### State Management
-The application uses a centralized state management approach:
-- **`TypingTestState`**: Observable class that manages all test-related state including:
-  - Test lifecycle (not started, in progress, finished)
-  - Timing data with high-precision measurements
-  - User input validation and progress tracking
-  - Statistics calculation (WPM, accuracy, character counts)
-- **`TypingEngine`**: Stateless utility that processes user input and updates the state model
-- **UI Views**: React to state changes and delegate user actions to the engine
+### Key Files
+- **`ContentView.swift`**: Main UI coordinating the typing test interface
+- **`TypingTestState.swift`**: Observable state with test lifecycle, timing, and stats (WPM, accuracy)
+- **`TypingEngine.swift`**: Core input validation and character matching logic
+- **`Challenge.swift`**: Data model with `predefinedChallenges` array
+- **`DesignSystem.swift`**: macOS-native design tokens (colors, spacing, shadows, materials)
+- **`ImageShareHelper.swift`**: Generates shareable result images
 
 ### Custom URL Scheme
-The app is configured to handle `speedtype://` URLs through Info.plist configuration. Challenge URLs follow the pattern: `speedtype://challenge/{challengeId}`
+Handles `speedtype://challenge/{challengeId}` via Info.plist configuration.
 
 ## Project Configuration
 
-- **Target Platform**: macOS (minimum deployment target: macOS 15.5)
-- **Development Tools**: Xcode 16.4+, Swift 5.0+
-- **UI Framework**: SwiftUI
+- **Platform**: macOS 15.5+
+- **Tools**: Xcode 16.4+, Swift 5.0+
 - **Bundle ID**: `com.lzhlovesjyq.SpeedType`
-- **Development Team**: V65YCRQZ2M
 
-## Adding New Features
+## Adding New Challenges
 
-### Adding New Challenges
-Modify the `predefinedChallenges` array in `Challenge.swift`:
+In `Challenge.swift`, add to the `predefinedChallenges` array:
 ```swift
-Challenge(
-    id: "unique-identifier",
-    title: "Display Name", 
-    text: "Text to type"
-)
+Challenge(id: "unique-id", title: "Display Name", text: "Text to type")
 ```
-
-### Modifying Statistics
-Update the computed properties in `TypingTestState.swift`:
-- `wpm`: Words per minute calculation
-- `accuracy`: Percentage of correct characters
-
-### Customizing Share Images
-Modify `ImageShareHelper.swift` to change the appearance of generated result images with watermarks.
