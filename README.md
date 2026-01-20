@@ -44,24 +44,16 @@ SpeedType 采用现代化的 SwiftUI 架构，实现了清晰的关注点分离�
 
 ```
 SpeedType/
-├── App/
-│   └── SpeedTypeApp.swift          # 应用入口点
-├── Views/
-│   ├── ContentView.swift           # 主界面视图
-│   ├── ResultView.swift            # 结果展示视图
-│   └── Components/
-│       ├── MacStatisticItem.swift  # 统计显示组件
-│       └── MacToggleOption.swift   # 设置选项组件
-├── Models/
-│   ├── TypingTestState.swift       # 测试状态管理
-│   └── Challenge.swift             # 挑战数据模型
-├── Engine/
-│   └── TypingEngine.swift          # 核心打字逻辑引擎
-├── Utils/
-│   └── ImageShareHelper.swift      # 图片分享工具
-└── Design/
-    ├── DesignSystem.swift          # 设计系统
-    └── ButtonStyles.swift          # 按钮样式
+├── SpeedTypeApp.swift          # 应用入口点
+├── ContentView.swift           # 主界面视图
+├── ResultView.swift            # 结果展示视图
+├── MacStatisticItem.swift      # 统计显示组件
+├── TypingTestState.swift       # 测试状态管理
+├── Challenge.swift             # 挑战数据模型
+├── TypingEngine.swift          # 核心打字逻辑引擎
+├── ImageShareHelper.swift      # 图片分享工具
+├── DesignSystem.swift          # 设计系统
+└── ButtonStyles.swift          # 按钮样式
 ```
 
 ### 关键特性实现
@@ -70,14 +62,9 @@ SpeedType/
 ```swift
 // 使用 CACurrentMediaTime() 确保亚毫秒级精度
 var elapsedTime: TimeInterval {
-  if let startTime {
-    if let endTime {
-      return endTime - startTime
-    } else if isTyping {
-      return CACurrentMediaTime() - startTime
-    }
-  }
-  return 0
+  guard let startTime else { return 0 }
+  if let endTime { return endTime - startTime }
+  return isTyping ? CACurrentMediaTime() - startTime : 0
 }
 ```
 
