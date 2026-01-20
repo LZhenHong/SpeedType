@@ -27,12 +27,12 @@ struct Challenge: Identifiable, Hashable {
     ]
 
     #if DEBUG
-      challenges.append(
-        Challenge(
-          id: "test-qwer",
-          title: "Test (QWER)",
-          text: "QWER"
-        ))
+    challenges.append(
+      Challenge(
+        id: "test-qwer",
+        title: "Test (QWER)",
+        text: "QWER"
+      ))
     #endif
 
     return challenges

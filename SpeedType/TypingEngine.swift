@@ -94,7 +94,7 @@ enum TypingEngine {
     var errorCount = 0
     var hasError = false
 
-    for index in startIndex ..< endIndex {
+    for index in startIndex..<endIndex {
       let isMatch = charactersMatch(
         inputChars[index], targetChars[index], caseSensitive: caseSensitive
       )
@@ -117,9 +117,7 @@ enum TypingEngine {
   }
 
   /// 字符匹配检查
-  private static func charactersMatch(_ input: Character, _ target: Character, caseSensitive: Bool)
-    -> Bool
-  {
+  private static func charactersMatch(_ input: Character, _ target: Character, caseSensitive: Bool) -> Bool {
     caseSensitive ? input == target : input.lowercased() == target.lowercased()
   }
 

@@ -9,236 +9,207 @@ import AppKit
 import SwiftUI
 import UserNotifications
 
+// MARK: - Image Layout Configuration
+
+private enum ImageLayout {
+  static let width: CGFloat = 600
+  static let height: CGFloat = 400
+  static let padding: CGFloat = 40
+
+  enum Font {
+    static let title = NSFont.systemFont(ofSize: 28, weight: .bold)
+    static let icon = NSFont.systemFont(ofSize: 24)
+    static let value = NSFont.systemFont(ofSize: 32, weight: .bold)
+    static let label = NSFont.systemFont(ofSize: 14, weight: .medium)
+    static let watermark = NSFont.systemFont(ofSize: 14, weight: .medium)
+  }
+
+  enum Offset {
+    static let titleBottom: CGFloat = 20
+    static let metricsFromTitle: CGFloat = 60
+    static let secondaryFromPrimary: CGFloat = 80
+    static let iconValueGap: CGFloat = 10
+    static let iconYOffset: CGFloat = 40
+    static let valueYOffset: CGFloat = 35
+    static let labelYOffset: CGFloat = 10
+  }
+}
+
+// MARK: - Text Attributes Helper
+
+private enum TextStyle {
+  case title, icon, value, label, watermark
+
+  var attributes: [NSAttributedString.Key: Any] {
+    switch self {
+    case .title:
+      [.font: ImageLayout.Font.title, .foregroundColor: NSColor.labelColor]
+    case .icon:
+      [.font: ImageLayout.Font.icon, .foregroundColor: NSColor.labelColor]
+    case .value:
+      [.font: ImageLayout.Font.value, .foregroundColor: NSColor.labelColor]
+    case .label:
+      [.font: ImageLayout.Font.label, .foregroundColor: NSColor.secondaryLabelColor]
+    case .watermark:
+      [.font: ImageLayout.Font.watermark, .foregroundColor: NSColor.secondaryLabelColor]
+    }
+  }
+}
+
+// MARK: - Metric Data
+
+private struct MetricData {
+  let icon: String
+  let value: String
+  let label: String
+}
+
+// MARK: - ImageShareHelper
+
 class ImageShareHelper {
   /// 生成带水印的结果图片
   static func generateResultImage(testState: TypingTestState) -> NSImage? {
-    let width: CGFloat = 600
-    let height: CGFloat = 400
-
-    let image = NSImage(size: NSSize(width: width, height: height))
+    let size = NSSize(width: ImageLayout.width, height: ImageLayout.height)
+    let image = NSImage(size: size)
 
     image.lockFocus()
-
-    // 背景
     NSColor.windowBackgroundColor.setFill()
-    NSRect(x: 0, y: 0, width: width, height: height).fill()
-
-    // 绘制内容
-    drawResultContent(testState: testState, in: NSRect(x: 0, y: 0, width: width, height: height))
-
+    NSRect(origin: .zero, size: size).fill()
+    drawResultContent(testState: testState, in: NSRect(origin: .zero, size: size))
     image.unlockFocus()
 
     return image
   }
 
-  /// 绘制结果内容
-  private static func drawResultContent(testState: TypingTestState, in rect: NSRect) {
-    let padding: CGFloat = 40
-    let contentRect = NSRect(
-      x: padding,
-      y: padding,
-      width: rect.width - 2 * padding,
-      height: rect.height - 2 * padding
-    )
+  // MARK: - Private Drawing Methods
 
-    // 标题
-    let titleAttributes: [NSAttributedString.Key: Any] = [
-      .font: NSFont.systemFont(ofSize: 28, weight: .bold),
-      .foregroundColor: NSColor.labelColor,
+  private static func drawResultContent(testState: TypingTestState, in rect: NSRect) {
+    let contentRect = rect.insetBy(dx: ImageLayout.padding, dy: ImageLayout.padding)
+
+    let titleY = drawTitle(in: contentRect)
+    let primaryMetricsY = titleY - ImageLayout.Offset.metricsFromTitle
+    let secondaryMetricsY = primaryMetricsY - ImageLayout.Offset.secondaryFromPrimary
+
+    let primaryMetrics = [
+      MetricData(icon: "⚡", value: String(format: "%.1f", testState.wpm), label: "WPM"),
+      MetricData(icon: "🎯", value: "\(testState.accuracy)%", label: "准确率"),
     ]
 
+    let secondaryMetrics = [
+      MetricData(icon: "📝", value: "\(testState.currentIndex)", label: "字符"),
+      MetricData(icon: "⏱️", value: String(format: "%.3f", testState.elapsedTime), label: "时间"),
+    ]
+
+    drawMetrics(primaryMetrics, y: primaryMetricsY, in: contentRect)
+    drawMetrics(secondaryMetrics, y: secondaryMetricsY, in: contentRect)
+    drawWatermark(in: contentRect)
+  }
+
+  private static func drawTitle(in rect: NSRect) -> CGFloat {
     let title = "SpeedType 测试结果"
-    let titleSize = title.size(withAttributes: titleAttributes)
+    let titleSize = title.size(withAttributes: TextStyle.title.attributes)
     let titleRect = NSRect(
-      x: contentRect.midX - titleSize.width / 2,
-      y: contentRect.maxY - titleSize.height - 20,
+      x: rect.midX - titleSize.width / 2,
+      y: rect.maxY - titleSize.height - ImageLayout.Offset.titleBottom,
       width: titleSize.width,
       height: titleSize.height
     )
-    title.draw(in: titleRect, withAttributes: titleAttributes)
-
-    // 主要指标
-    let metricsY = titleRect.minY - 60
-    drawMetric(
-      icon: "⚡",
-      value: String(format: "%.1f", testState.wpm),
-      label: "WPM",
-      at: NSPoint(x: contentRect.minX + 50, y: metricsY)
-    )
-
-    drawMetric(
-      icon: "🎯",
-      value: "\(testState.accuracy)%",
-      label: "准确率",
-      at: NSPoint(x: contentRect.midX - 50, y: metricsY)
-    )
-
-    // 次要指标
-    let secondaryY = metricsY - 80
-    drawMetric(
-      icon: "📝",
-      value: "\(testState.currentIndex)",
-      label: "字符",
-      at: NSPoint(x: contentRect.minX + 50, y: secondaryY)
-    )
-
-    drawMetric(
-      icon: "⏱️",
-      value: String(format: "%.3f", testState.elapsedTime),
-      label: "时间",
-      at: NSPoint(x: contentRect.midX - 50, y: secondaryY)
-    )
-
-    // 水印
-    let watermarkAttributes: [NSAttributedString.Key: Any] = [
-      .font: NSFont.systemFont(ofSize: 14, weight: .medium),
-      .foregroundColor: NSColor.secondaryLabelColor,
-    ]
-
-    let watermark = "Generated by SpeedType"
-    let watermarkSize = watermark.size(withAttributes: watermarkAttributes)
-    let watermarkRect = NSRect(
-      x: contentRect.maxX - watermarkSize.width,
-      y: contentRect.minY,
-      width: watermarkSize.width,
-      height: watermarkSize.height
-    )
-    watermark.draw(in: watermarkRect, withAttributes: watermarkAttributes)
+    title.draw(in: titleRect, withAttributes: TextStyle.title.attributes)
+    return titleRect.minY
   }
 
-  /// 绘制单个指标
-  private static func drawMetric(icon: String, value: String, label: String, at point: NSPoint) {
-    let iconAttributes: [NSAttributedString.Key: Any] = [
-      .font: NSFont.systemFont(ofSize: 24),
-      .foregroundColor: NSColor.labelColor,
-    ]
-
-    let valueAttributes: [NSAttributedString.Key: Any] = [
-      .font: NSFont.systemFont(ofSize: 32, weight: .bold),
-      .foregroundColor: NSColor.labelColor,
-    ]
-
-    let labelAttributes: [NSAttributedString.Key: Any] = [
-      .font: NSFont.systemFont(ofSize: 14, weight: .medium),
-      .foregroundColor: NSColor.secondaryLabelColor,
-    ]
-
-    // 图标
-    let iconSize = icon.size(withAttributes: iconAttributes)
-    icon.draw(at: NSPoint(x: point.x, y: point.y + 40), withAttributes: iconAttributes)
-
-    // 数值
-    _ = value.size(withAttributes: valueAttributes)
-    value.draw(
-      at: NSPoint(x: point.x + iconSize.width + 10, y: point.y + 35),
-      withAttributes: valueAttributes
-    )
-
-    // 标签
-    label.draw(
-      at: NSPoint(x: point.x + iconSize.width + 10, y: point.y + 10),
-      withAttributes: labelAttributes
-    )
-  }
-
-  /// 分享图片
-  static func shareImage(_ image: NSImage) {
-    // 转换为PNG数据
-    guard let tiffData = image.tiffRepresentation,
-          let bitmapRep = NSBitmapImageRep(data: tiffData),
-          let pngData = bitmapRep.representation(using: .png, properties: [:])
-    else {
-      return
+  private static func drawMetrics(_ metrics: [MetricData], y: CGFloat, in rect: NSRect) {
+    let positions = [rect.minX + 50, rect.midX - 50]
+    for (index, metric) in metrics.enumerated() where index < positions.count {
+      drawMetric(metric, at: NSPoint(x: positions[index], y: y))
     }
+  }
 
-    // 保存到临时文件
+  private static func drawMetric(_ metric: MetricData, at point: NSPoint) {
+    let iconSize = metric.icon.size(withAttributes: TextStyle.icon.attributes)
+
+    metric.icon.draw(
+      at: NSPoint(x: point.x, y: point.y + ImageLayout.Offset.iconYOffset),
+      withAttributes: TextStyle.icon.attributes
+    )
+
+    metric.value.draw(
+      at: NSPoint(
+        x: point.x + iconSize.width + ImageLayout.Offset.iconValueGap,
+        y: point.y + ImageLayout.Offset.valueYOffset
+      ),
+      withAttributes: TextStyle.value.attributes
+    )
+
+    metric.label.draw(
+      at: NSPoint(
+        x: point.x + iconSize.width + ImageLayout.Offset.iconValueGap,
+        y: point.y + ImageLayout.Offset.labelYOffset
+      ),
+      withAttributes: TextStyle.label.attributes
+    )
+  }
+
+  private static func drawWatermark(in rect: NSRect) {
+    let watermark = "Generated by SpeedType"
+    let size = watermark.size(withAttributes: TextStyle.watermark.attributes)
+    watermark.draw(
+      at: NSPoint(x: rect.maxX - size.width, y: rect.minY),
+      withAttributes: TextStyle.watermark.attributes
+    )
+  }
+
+  // MARK: - Sharing Methods
+
+  static func shareImage(_ image: NSImage) {
+    guard let pngData = image.pngData else { return }
+
     let tempURL = FileManager.default.temporaryDirectory
       .appendingPathComponent("SpeedType_Result_\(Date().timeIntervalSince1970).png")
 
-    do {
-      try pngData.write(to: tempURL)
-
-      // 尝试多种分享方式
-      if shareViaSystemService(url: tempURL) {
-        return
-      }
-
-      if shareViaFinder(url: tempURL) {
-        return
-      }
-
-      shareViaClipboard(data: pngData)
-
-    } catch {
-      // 直接复制到剪贴板
-      shareViaClipboard(data: pngData)
+    guard let _ = try? pngData.write(to: tempURL) else {
+      copyToClipboard(data: pngData)
+      return
     }
+
+    showShareMenu(for: tempURL)
   }
 
-  /// 通过系统分享服务分享
-  private static func shareViaSystemService(url: URL) -> Bool {
-    if #available(macOS 13.0, *) {
-      // 使用新的API - 创建分享选择器
-      let picker = NSSharingServicePicker(items: [url])
-      let shareMenuItem = picker.standardShareMenuItem
+  private static func showShareMenu(for url: URL) {
+    guard let window = NSApplication.shared.keyWindow else { return }
 
-      // 在主线程上显示分享菜单
-      DispatchQueue.main.async {
-        if let window = NSApplication.shared.keyWindow {
-          let event = NSApplication.shared.currentEvent
-          let location =
-            event?.locationInWindow
-              ?? NSPoint(x: window.frame.width / 2, y: window.frame.height / 2)
+    let picker = NSSharingServicePicker(items: [url])
+    let shareMenuItem = picker.standardShareMenuItem
+    let location = NSApplication.shared.currentEvent?.locationInWindow
+      ?? NSPoint(x: window.frame.width / 2, y: window.frame.height / 2)
 
-          // 创建临时菜单来显示分享选项
-          let menu = NSMenu()
-          menu.addItem(shareMenuItem)
-          menu.popUp(positioning: shareMenuItem, at: location, in: window.contentView)
-        }
-      }
-      return true
-    } else {
-      // 兼容旧版本macOS
-      let sharingServices = NSSharingService.sharingServices(forItems: [url])
-
-      if let firstService = sharingServices.first {
-        firstService.perform(withItems: [url])
-        return true
-      }
-
-      return false
-    }
+    let menu = NSMenu()
+    menu.addItem(shareMenuItem)
+    menu.popUp(positioning: shareMenuItem, at: location, in: window.contentView)
   }
 
-  /// 通过Finder显示文件
-  private static func shareViaFinder(url: URL) -> Bool {
-    NSWorkspace.shared.selectFile(
-      url.path, inFileViewerRootedAtPath: url.deletingLastPathComponent().path
-    )
-    return true
-  }
-
-  /// 复制到剪贴板
-  private static func shareViaClipboard(data: Data) {
+  private static func copyToClipboard(data: Data) {
     let pasteboard = NSPasteboard.general
     pasteboard.clearContents()
     pasteboard.setData(data, forType: .png)
 
-    // 使用现代的UserNotifications框架
-    if #available(macOS 10.14, *) {
-      let center = UNUserNotificationCenter.current()
+    let content = UNMutableNotificationContent()
+    content.title = "SpeedType"
+    content.body = "测试结果图片已复制到剪贴板"
+    content.sound = .default
 
-      let content = UNMutableNotificationContent()
-      content.title = "SpeedType"
-      content.body = "测试结果图片已复制到剪贴板"
-      content.sound = UNNotificationSound.default
+    let request = UNNotificationRequest(identifier: "speedtype_share", content: content, trigger: nil)
+    UNUserNotificationCenter.current().add(request) { _ in }
+  }
+}
 
-      let request = UNNotificationRequest(
-        identifier: "speedtype_share", content: content, trigger: nil
-      )
-      center.add(request) { _ in
-        // 忽略通知错误
-      }
-    }
+// MARK: - NSImage Extension
+
+private extension NSImage {
+  var pngData: Data? {
+    guard let tiffData = tiffRepresentation,
+          let bitmapRep = NSBitmapImageRep(data: tiffData)
+    else { return nil }
+    return bitmapRep.representation(using: .png, properties: [:])
   }
 }
